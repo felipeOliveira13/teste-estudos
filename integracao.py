@@ -1,62 +1,61 @@
-import os
-import sys
+import streamlit as st
 import gspread
 import pandas as pd
-from oauth2client.service_account import ServiceAccountCredentials
-
-# --- CAMINHO ABSOLUTO DO ARQUIVO JSON (INSERIDO POR VOCÊ) ---
-CREDENTIALS_PATH = r"C:\Users\User\Desktop\integraçao sheets\integracaoSheets\credentials.json"
+# As bibliotecas 'os', 'sys', 'oauth2client.service_account' e 'print' 
+# para logs de erro foram removidas, pois o Streamlit trata o fluxo de forma diferente, 
+# usando 'st.error' e 'st.warning' para feedback ao usuário.
 
 # --- DADOS DA PLANILHA ---
+# ⚠️ IMPORTANTE: CONFIRA SE O NOME DA ABA ESTÁ EXATAMENTE CORRETO
 SHEET_ID = "1fa4HLFfjIFKHjHBuxW_ymHkahVPzeoB_XlHNJMaNCg8"
 SHEET_NAME = "Chevrolet Preços"
 
-# 1) Verifica se o arquivo existe
-if not os.path.exists(CREDENTIALS_PATH):
-    print("❌ Arquivo de credenciais NÃO encontrado!")
-    print("Caminho informado:", CREDENTIALS_PATH)
-    sys.exit(1)
+# Título do Aplicativo Streamlit
+st.title("🚗 Tabela de Preços Chevrolet (Google Sheets)")
+st.caption("Dados carregados diretamente do Google Sheets usando st.secrets.")
 
-# 2) Verifica se dá para abrir
-try:
-    with open(CREDENTIALS_PATH, "r", encoding="utf-8") as f:
-        _ = f.read(50)
-except Exception as e:
-    print("❌ Não foi possível abrir o arquivo:", e)
-    sys.exit(1)
+# Função para carregar os dados. O cache garante que o Sheets só será lido 
+# a cada 10 minutos ou quando o código for alterado.
+@st.cache_data(ttl=600)  # ttl=600 segundos (10 minutos)
+def load_data_from_sheet():
+    try:
+        # 1. Carrega as credenciais da seção 'gcp_service_account' do st.secrets
+        # Este dicionário é fornecido pelo seu arquivo .streamlit/secrets.toml
+        # ou pela configuração de segredos do Streamlit Cloud.
+        credentials = st.secrets["gcp_service_account"]
+        
+        # 2. Autenticação com gspread
+        # O gspread já está preparado para aceitar o dicionário de credenciais
+        gc = gspread.service_account_from_dict(credentials)
+        
+        # 3. Abrir planilha e aba
+        spreadsheet = gc.open_by_key(SHEET_ID)
+        worksheet = spreadsheet.worksheet(SHEET_NAME)
+        
+        # 4. Ler dados da aba e converter para DataFrame
+        df = pd.DataFrame(worksheet.get_all_records())
+        
+        return df
+    
+    except KeyError:
+        # Erro de credenciais (se o segredo não foi configurado corretamente)
+        st.error("❌ Erro de Configuração: O segredo 'gcp_service_account' não foi encontrado.")
+        st.info("Por favor, certifique-se de que colou o conteúdo TOML na seção 'Secrets' do Streamlit Cloud.")
+        return pd.DataFrame()
+        
+    except Exception as e:
+        # Outros erros (ex: permissão negada, planilha não encontrada, nome da aba incorreto)
+        st.error(f"❌ Erro ao acessar o Google Sheets: {e}")
+        st.warning("Verifique se o email de serviço foi adicionado como 'Leitor' na planilha.")
+        return pd.DataFrame()
 
-# 3) Autenticação com Google Sheets
-scope = [
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"
-]
 
-try:
-    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_PATH, scope)
-    client = gspread.authorize(creds)
-    print("✔ Autenticação OK")
-except Exception as e:
-    print("❌ Erro na autenticação:", e)
-    sys.exit(1)
+# --- EXECUÇÃO DO APLICATIVO ---
+df = load_data_from_sheet()
 
-# 4) Abrir planilha e aba
-try:
-    spreadsheet = client.open_by_key(SHEET_ID)
-    worksheet = spreadsheet.worksheet(SHEET_NAME)
-    print("✔ Aba encontrada:", SHEET_NAME)
-except Exception as e:
-    print("❌ ERRO ao abrir planilha/aba:", e)
-    print("\nVerifique:")
-    print("  • A planilha foi compartilhada com o 'client_email' do arquivo JSON.")
-    print("  • O nome da aba está exatamente igual.")
-    sys.exit(1)
-
-# 5) Ler dados da aba
-try:
-    df = pd.DataFrame(worksheet.get_all_records())
-    print("✔ Dados carregados! Total de linhas:", len(df))
-    print(df.head())
-except Exception as e:
-    print("❌ ERRO ao ler dados:", e)
-    sys.exit(1)
+if not df.empty:
+    st.subheader(f"Dados da Aba: {SHEET_NAME} (Total de linhas: {len(df)})")
+    # Exibe o DataFrame como uma tabela interativa no Streamlit
+    st.dataframe(df)
+else:
+    st.warning("Não foi possível carregar os dados. Verifique os logs de erro acima.")
