@@ -3,6 +3,12 @@ import gspread
 import pandas as pd
 import altair as alt # <-- NOVIDADE: Importação do Altair para gráficos
 
+st.set_page_config(
+    page_title="Dashboard de Preços Chevrolet", # <-- Novo título para a aba
+    page_icon="📊", # <-- Novo ícone (Emoji de gráfico)
+    layout="wide" # Garante que o conteúdo ocupe toda a largura da tela
+)
+
 # --- CONSTANTES GERAIS ---
 ROW_HEIGHT = 35 
 HEADER_HEIGHT = 35
