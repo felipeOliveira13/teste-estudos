@@ -2,11 +2,40 @@ import streamlit as st
 import gspread
 import pandas as pd
 
+# 1. NOVO: Função de Injeção de CSS para Centralizar Título e Aumentar Botão
+def inject_custom_css():
+    st.markdown(
+        """
+        <style>
+        /* Centraliza o título principal H1 */
+        h1 {
+            text-align: center;
+        }
+
+        /* Aumenta a largura do botão 'Recarregar Dados' para 100% do seu contêiner */
+        /* Este seletor alvo a div que contém o botão para forçar a largura total */
+        div.stButton > button:first-child {
+            width: 100%;
+        }
+        
+        /* Ajusta o padding para que o conteúdo não fique colado no topo (opcional) */
+        .block-container {
+            padding-top: 2rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+# Chamada do CSS
+inject_custom_css()
+# --- FIM DO CSS ---
+
+
 # --- DADOS DA PLANILHA ---
 SHEET_ID = "1fa4HLFfjIFKHjHBuxW_ymHkahVPzeoB_XlHNJMaNCg8"
 SHEET_NAME = "Chevrolet Preços"
 
-# Título do Aplicativo Streamlit
+# Título do Aplicativo Streamlit (será centralizado pelo CSS acima)
 st.title("🚗 Tabela de Preços Chevrolet (Google Sheets)")
 st.caption("Dados carregados diretamente do Google Sheets usando st.secrets.")
 
@@ -18,11 +47,9 @@ def load_data_from_sheet():
         credentials = st.secrets["gcp_service_account"]
         gc = gspread.service_account_from_dict(credentials)
         
-        # Abrir planilha e aba
         spreadsheet = gc.open_by_key(SHEET_ID)
         worksheet = spreadsheet.worksheet(SHEET_NAME)
         
-        # Ler dados da aba e converter para DataFrame
         df = pd.DataFrame(worksheet.get_all_records())
         
         return df
@@ -43,27 +70,26 @@ df = load_data_from_sheet()
 if not df.empty:
     st.subheader(f"Dados da Aba: {SHEET_NAME} (Total de linhas: {len(df)})")
     
-    # Exibe o DataFrame com uma altura fixa de 400px, adicionando scroll interno
-    # para evitar que a tabela se expanda indefinidamente na página.
+    # Exibe o DataFrame com altura fixa
     st.dataframe(df, height=400, use_container_width=True) 
     
-    # ----------------------------------------------------------------------
-    # O BOTÃO FOI MOVIDO PARA DEPOIS DA TABELA, CONFORME SOLICITADO.
-    # ----------------------------------------------------------------------
+    # Linha divisória
+    st.markdown("---") 
     
-    # NOVO: Contêiner para posicionar o botão logo abaixo da tabela
-    st.markdown("---") # Linha divisória para separar visualmente
-    with st.container():
-        col1, col2 = st.columns([1, 4])
-        
-        # Lógica do botão de recarregamento
-        with col1:
-            if st.button("🔄 Recarregar Dados"):
-                load_data_from_sheet.clear()
-                st.rerun() 
+    # O contêiner de duas colunas foi simplificado
+    col1, col2, col3 = st.columns([1, 1, 4]) # Usamos uma coluna extra vazia para espaçamento
+    
+    with col1:
+        # AQUI USAMOS O PARÂMETRO 'help' para criar o hover (tooltip).
+        # O CSS acima garante a largura total.
+        if st.button(
+            "🔄 Recarregar Dados", 
+            help="Clique para buscar a versão mais recente dos dados da planilha."
+        ):
+            load_data_from_sheet.clear()
+            st.rerun() 
             
-        with col2:
-            st.info("Clique para buscar a versão mais recente dos dados da planilha.")
+    # O st.info foi removido, pois sua mensagem está agora no 'help' do botão.
             
 else:
     st.warning("Não foi possível carregar os dados. Verifique os logs de erro acima.")
