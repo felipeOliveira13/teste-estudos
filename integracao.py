@@ -11,9 +11,17 @@ def inject_custom_css():
         h1 {
             text-align: center;
         }
+        
+        /* Centraliza o texto secundário (caption) */
+        /* O seletor 'stCaptionContainer' alvo a div que contém o st.caption */
+        div[data-testid="stCaptionContainer"] {
+            text-align: center;
+        }
 
-        /* REMOVEMOS AQUI O CÓDIGO CSS QUE FORÇAVA A LARGURA DO BOTÃO, 
-           permitindo que o Streamlit defina a largura natural para o texto. */
+        /* ⚠️ CORREÇÃO PARA O BOTÃO: Impede a quebra de linha no texto */
+        div.stButton > button:first-child {
+            white-space: nowrap; /* Garante que o texto fique em uma linha */
+        }
         
         /* Ajusta o padding para que o conteúdo não fique colado no topo (opcional) */
         .block-container {
@@ -34,6 +42,7 @@ SHEET_NAME = "Chevrolet Preços"
 
 # Título do Aplicativo Streamlit (centralizado via CSS)
 st.title("🚗 Tabela de Preços Chevrolet (Google Sheets)")
+# CENTRALIZADO: Este texto será centralizado pelo novo CSS
 st.caption("Dados carregados diretamente do Google Sheets usando st.secrets.")
 
 
@@ -73,13 +82,12 @@ if not df.empty:
     # Linha divisória
     st.markdown("---") 
     
-    # NOVO: USANDO COLUNAS PARA CENTRALIZAR O BOTÃO
-    # [3, 2, 3] garante que o espaço vazio na esquerda (3) e na direita (3)
-    # seja igual, centralizando o espaço do botão (2)
-    col_left, col_center, col_right = st.columns([3, 2, 3])
+    # CORREÇÃO DE LAYOUT: USANDO COLUNAS [3, 4, 3] PARA MAIS ESPAÇO NO CENTRO
+    # O botão terá 40% da largura total, garantindo espaço suficiente.
+    col_left, col_center, col_right = st.columns([3, 4, 3])
     
     with col_center:
-        # O Streamlit agora ajustará a largura automaticamente para o texto
+        # O white-space: nowrap do CSS garante que o texto não quebre.
         if st.button(
             "🔄 Recarregar Dados", 
             help="Clique para buscar a versão mais recente dos dados da planilha."
