@@ -10,7 +10,7 @@ import os
 # --- VARIÁVEIS DE CONFIGURAÇÃO ---
 EMAIL_DOMAINS = ["botafogos.com.br", "gmail.com"]
 
-# --- FUNÇÃO DE CONEXÃO COM O BANCO DE DADOS (USANDO PARÂMETROS EXPLÍCITOS E SSL) ---
+# --- FUNÇÃO DE CONEXÃO COM O BANCO DE DADOS ---
 
 def get_db_connection():
     """Cria e retorna uma conexão com o banco de dados PostgreSQL (Supabase) usando parâmetros explícitos de rede e SSL."""
@@ -24,13 +24,13 @@ def get_db_connection():
     conn = None
     try:
         # Tenta a conexão usando parâmetros explícitos para garantir que o psycopg2 use o HOST e a PORTA
+        # O 'sslmode=require' é obrigatório para o Supabase no Streamlit
         conn = psycopg2.connect(
             database=db_config['database'],
             user=db_config['username'],
             password=db_config['password'],
             host=db_config['host'],
             port=db_config['port'],
-            # Força o uso de SSL, o que é MANDATÓRIO para Streamlit e Supabase
             sslmode='require' 
         )
         return conn
